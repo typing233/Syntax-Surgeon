@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字手术模拟器 - 语言医生</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <div class="title-section">
+                <h1 class="game-title">🏥 文字手术模拟器</h1>
+                <p class="game-subtitle">望闻问切，修复病句残篇</p>
+            </div>
+            <div class="status-bar">
+                <div class="qi-value">
+                    <span class="qi-label">文气值</span>
+                    <span class="qi-amount" id="qiValue">100</span>
+                    <div class="qi-bar">
+                        <div class="qi-fill" id="qiBar" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="score">
+                    <span class="score-label">治愈病例</span>
+                    <span class="score-amount" id="scoreValue">0</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="game-main">
+            <div class="medical-record-container">
+                <div class="record-header">
+                    <div class="record-title">
+                        <span class="record-icon">📜</span>
+                        <h2>残卷病历</h2>
+                        <span class="error-type" id="errorType">错别字</span>
+                    </div>
+                    <button class="next-btn" id="nextBtn" style="display: none;">
+                        下一个病例 →
+                    </button>
+                </div>
+                
+                <div class="record-content" id="recordContent">
+                    <p class="diagnosis-text" id="diagnosisText">
+                        正在加载病例...
+                    </p>
+                </div>
+                
+                <div class="record-footer">
+                    <div class="hint-text" id="hintText">
+                        💡 提示：点击你认为有错误的字词进行诊断
+                    </div>
+                </div>
+            </div>
+
+            <div class="doctor-section">
+                <div class="doctor-card">
+                    <div class="doctor-avatar" id="doctorAvatar">
+                        🐦
+                    </div>
+                    <div class="doctor-info">
+                        <h3 class="doctor-name" id="doctorName">啄木鸟医生</h3>
+                        <p class="doctor-says" id="doctorSays">
+                            让我们一起修复这些病句吧！
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div class="modal-overlay" id="modalOverlay" style="display: none;">
+            <div class="modal" id="modal">
+                <div class="modal-header">
+                    <h3 id="modalTitle">诊断修改</h3>
+                    <button class="modal-close" id="modalClose">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="error-preview">
+                        <span class="original-text" id="modalOriginalText">的</span>
+                        <span class="arrow">→</span>
+                        <input type="text" class="correction-input" id="correctionInput" placeholder="输入正确的字">
+                    </div>
+                    <p class="modal-hint" id="modalHint">
+                        如果是赘字错误，直接留空点击"确认删除"即可
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="modalCancel">取消</button>
+                    <button class="btn btn-primary" id="modalSubmit">确认修改</button>
+                    <button class="btn btn-danger" id="modalDelete" style="display: none;">确认删除</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="feedback-popup" id="feedbackPopup" style="display: none;">
+            <div class="feedback-icon" id="feedbackIcon">✅</div>
+            <div class="feedback-message" id="feedbackMessage">太棒了！</div>
+            <div class="feedback-explanation" id="feedbackExplanation"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
