@@ -12,7 +12,7 @@ exercise_data = [
         "error_type": "错别字",
         "errors": [
             {
-                "position": 7,
+                "position": 8,
                 "original_char": "的",
                 "correct_char": "地",
                 "explanation": "'认真地学习'中的'地'用作副词修饰动词'学习'"
@@ -38,7 +38,7 @@ exercise_data = [
         "error_type": "赘字",
         "errors": [
             {
-                "position": 9,
+                "position": 8,
                 "original_char": "的",
                 "correct_char": "",
                 "explanation": "'很多作业'已经完整，不需要多余的'的'"
@@ -77,7 +77,7 @@ exercise_data = [
         "error_type": "错别字",
         "errors": [
             {
-                "position": 4,
+                "position": 3,
                 "original_char": "厉",
                 "correct_char": "励",
                 "explanation": "'鼓励'指激励、勉励，用'励'"
