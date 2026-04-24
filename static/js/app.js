@@ -68,14 +68,21 @@ class AudioManager {
 
     playEmergency() {
         this.init();
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 2; i++) {
             setTimeout(() => {
-                this.playTone(880, 0.1, 'square', 0.3);
-            }, i * 200);
+                this.playTone(880, 0.08, 'square', 0.2);
+            }, i * 150);
             setTimeout(() => {
-                this.playTone(440, 0.1, 'square', 0.3);
-            }, i * 200 + 100);
+                this.playTone(440, 0.08, 'square', 0.2);
+            }, i * 150 + 75);
         }
+    }
+
+    playBonus() {
+        this.init();
+        this.playTone(659.25, 0.1, 'sine', 0.25);
+        setTimeout(() => this.playTone(783.99, 0.1, 'sine', 0.25), 100);
+        setTimeout(() => this.playTone(987.77, 0.15, 'sine', 0.25), 200);
     }
 }
 
@@ -107,11 +114,15 @@ class VibrationManager {
     }
 
     emergency() {
-        this.vibrate([100, 50, 100, 50, 100, 50, 100, 50, 100]);
+        this.vibrate([100, 50, 100, 50, 100]);
     }
 
     combo() {
         this.vibrate([50, 30, 50, 30, 50, 30, 100]);
+    }
+
+    bonus() {
+        this.vibrate([30, 30, 30, 30, 30, 50, 100]);
     }
 }
 
@@ -126,7 +137,7 @@ class TextSurgeryGame {
         this.correctAttempts = 0;
         this.selectedPosition = null;
         this.isExerciseCompleted = false;
-        this.currentLevel = '竹簡';
+        this.currentLevel = '竹简';
         this.levelProgress = 0;
         this.levelExercises = 5;
         this.combo = 0;
@@ -140,6 +151,12 @@ class TextSurgeryGame {
         this.playerName = '';
         this.isHost = false;
         this.players = [];
+        
+        this.activeEvent = null;
+        this.eventTimer = null;
+        this.eventScoreMultiplier = 1;
+        this.freeHintAvailable = false;
+        
         this.initElements();
         this.initEventListeners();
     }
@@ -212,16 +229,6 @@ class TextSurgeryGame {
         this.modalSubmitEl = document.getElementById('modalSubmit');
         this.modalDeleteEl = document.getElementById('modalDelete');
         
-        this.complicationModalEl = document.getElementById('complicationModal');
-        this.complicationHeaderEl = document.getElementById('complicationHeader');
-        this.complicationTitleEl = document.getElementById('complicationTitle');
-        this.complicationDescriptionEl = document.getElementById('complicationDescription');
-        this.timerDisplayEl = document.getElementById('timerDisplay');
-        this.timerValueEl = document.getElementById('timerValue');
-        this.complicationOptionsEl = document.getElementById('complicationOptions');
-        this.currentComplication = null;
-        this.complicationTimer = null;
-        
         this.feedbackPopupEl = document.getElementById('feedbackPopup');
         this.feedbackIconEl = document.getElementById('feedbackIcon');
         this.feedbackMessageEl = document.getElementById('feedbackMessage');
@@ -244,6 +251,21 @@ class TextSurgeryGame {
         this.posterCanvasEl = document.getElementById('posterCanvas');
         this.downloadPosterBtnEl = document.getElementById('downloadPosterBtn');
         this.closePosterBtnEl = document.getElementById('closePosterBtn');
+        
+        this.eventBannerEl = document.getElementById('eventBanner');
+        this.eventIconEl = document.getElementById('eventIcon');
+        this.eventTextEl = document.getElementById('eventText');
+        this.eventTimerEl = document.getElementById('eventTimer');
+        this.eventTimerValueEl = document.getElementById('eventTimerValue');
+        this.eventCloseBtnEl = document.getElementById('eventClose');
+        
+        this.eventPopupEl = document.getElementById('eventPopup');
+        this.eventPopupHeaderEl = document.getElementById('eventPopupHeader');
+        this.eventPopupIconEl = document.getElementById('eventPopupIcon');
+        this.eventPopupTitleEl = document.getElementById('eventPopupTitle');
+        this.eventPopupDescriptionEl = document.getElementById('eventPopupDescription');
+        this.eventPopupOptionsEl = document.getElementById('eventPopupOptions');
+        this.eventPopupCloseBtnEl = document.getElementById('eventPopupClose');
     }
 
     initEventListeners() {
@@ -281,6 +303,7 @@ class TextSurgeryGame {
             this.audioManager.playClick();
             this.vibrationManager.click();
             if (confirm('确定要返回主菜单吗？当前进度将丢失。')) {
+                this.clearActiveEvent();
                 this.showMainMenu();
             }
         });
@@ -311,7 +334,7 @@ class TextSurgeryGame {
         this.correctionInputEl.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 if (this.currentExercise && 
-                    this.currentExercise.error_type === '贅字' && 
+                    this.currentExercise.error_type === '赘字' && 
                     this.currentExercise.errors.find(e => e.position === this.selectedPosition)?.correct_char === '') {
                     this.deleteWord();
                 } else {
@@ -336,6 +359,14 @@ class TextSurgeryGame {
         this.continueGameBtnEl.addEventListener('click', () => this.continueAfterLevelComplete());
         this.closePosterBtnEl.addEventListener('click', () => this.closePosterModal());
         this.downloadPosterBtnEl.addEventListener('click', () => this.downloadPoster());
+        
+        this.eventCloseBtnEl.addEventListener('click', () => {
+            this.hideEventBanner();
+        });
+        
+        this.eventPopupCloseBtnEl.addEventListener('click', () => {
+            this.hideEventPopup();
+        });
     }
 
     showMainMenu() {
@@ -347,6 +378,7 @@ class TextSurgeryGame {
         this.gameScreenEl.style.display = 'none';
         this.levelCompleteModalEl.style.display = 'none';
         this.posterModalEl.style.display = 'none';
+        this.clearActiveEvent();
     }
 
     showLevelSelect() {
@@ -364,11 +396,11 @@ class TextSurgeryGame {
             if (data.success) {
                 const levels = data.data;
                 let html = '';
-                const levelOrder = ['竹簡', '帛書', '宣紙'];
+                const levelOrder = ['竹简', '帛书', '宣纸'];
                 const levelStyles = {
-                    '竹簡': 'bamboo',
-                    '帛書': 'silk',
-                    '宣紙': 'rice'
+                    '竹简': 'bamboo',
+                    '帛书': 'silk',
+                    '宣纸': 'rice'
                 };
                 
                 levelOrder.forEach((levelName, index) => {
@@ -671,6 +703,8 @@ class TextSurgeryGame {
         this.maxCombo = 0;
         this.totalAttempts = 0;
         this.correctAttempts = 0;
+        this.eventScoreMultiplier = 1;
+        this.freeHintAvailable = false;
         
         this.updateLevelDisplay();
         this.updatePaperStyle();
@@ -690,9 +724,9 @@ class TextSurgeryGame {
     updatePaperStyle() {
         this.medicalRecordContainerEl.classList.remove('bamboo', 'silk', 'rice');
         const styleMap = {
-            '竹簡': 'bamboo',
-            '帛書': 'silk',
-            '宣紙': 'rice'
+            '竹简': 'bamboo',
+            '帛书': 'silk',
+            '宣纸': 'rice'
         };
         if (styleMap[this.currentLevel]) {
             this.medicalRecordContainerEl.classList.add(styleMap[this.currentLevel]);
@@ -718,6 +752,11 @@ class TextSurgeryGame {
 
     showHint() {
         if (!this.currentExercise) return;
+        
+        if (this.freeHintAvailable) {
+            this.freeHintAvailable = false;
+            this.showFeedback(true, '使用免费提示！', '');
+        }
         
         const errors = this.currentExercise.errors;
         if (errors.length > 0) {
@@ -763,8 +802,8 @@ class TextSurgeryGame {
                 this.updateExerciseDisplay();
                 this.nextBtnEl.style.display = 'none';
                 
-                if (Math.random() < 0.3) {
-                    setTimeout(() => this.triggerComplication(), 2000);
+                if (Math.random() < 0.25) {
+                    setTimeout(() => this.triggerEvent(), 1500);
                 }
             }
         } catch (error) {
@@ -777,6 +816,7 @@ class TextSurgeryGame {
         this.levelProgress++;
         
         if (this.levelProgress >= this.levelExercises) {
+            this.clearActiveEvent();
             this.showLevelComplete();
             return;
         }
@@ -838,7 +878,7 @@ class TextSurgeryGame {
         
         this.hintTextEl.textContent = `💡 提示：点击你认为有错误的字词进行诊断（错误类型：${this.currentExercise.error_type}）`;
         
-        if (this.currentExercise.error_type === '贅字') {
+        if (this.currentExercise.error_type === '赘字') {
             this.doctorSaysEl.textContent = '这个句子里有多余的字哦，找出来并删除它吧！';
         } else {
             this.doctorSaysEl.textContent = '这个句子里有错别字哦，找出来并改正它吧！';
@@ -1039,11 +1079,18 @@ class TextSurgeryGame {
         
         const baseScore = 10;
         const comboBonus = Math.floor(baseScore * (this.comboMultiplier - 1));
-        const totalScore = baseScore + comboBonus;
+        const eventBonus = Math.floor(baseScore * (this.eventScoreMultiplier - 1));
+        const totalScore = baseScore + comboBonus + eventBonus;
         this.score += totalScore;
         this.scoreValueEl.textContent = this.score;
         
-        this.showFeedback(true, `太棒了！+${totalScore}分`, result.explanation);
+        let bonusMessage = '';
+        if (this.eventScoreMultiplier > 1) {
+            bonusMessage = ` (事件加成 x${this.eventScoreMultiplier})`;
+            this.clearActiveEvent();
+        }
+        
+        this.showFeedback(true, `太棒了！+${totalScore}分${bonusMessage}`, result.explanation);
         
         this.doctorSaysEl.textContent = '干得漂亮！这个病句已经被你治好了！';
         
@@ -1072,11 +1119,18 @@ class TextSurgeryGame {
         
         const baseScore = 10;
         const comboBonus = Math.floor(baseScore * (this.comboMultiplier - 1));
-        const totalScore = baseScore + comboBonus;
+        const eventBonus = Math.floor(baseScore * (this.eventScoreMultiplier - 1));
+        const totalScore = baseScore + comboBonus + eventBonus;
         this.score += totalScore;
         this.scoreValueEl.textContent = this.score;
         
-        this.showFeedback(true, `太棒了！+${totalScore}分`, result.explanation);
+        let bonusMessage = '';
+        if (this.eventScoreMultiplier > 1) {
+            bonusMessage = ` (事件加成 x${this.eventScoreMultiplier})`;
+            this.clearActiveEvent();
+        }
+        
+        this.showFeedback(true, `太棒了！+${totalScore}分${bonusMessage}`, result.explanation);
         
         this.doctorSaysEl.textContent = '完美！这个句子现在简洁多了！';
         
@@ -1194,6 +1248,7 @@ class TextSurgeryGame {
 
     gameOver() {
         this.showFeedback(false, '文气值耗尽了...', '别担心，游戏可以重新开始！');
+        this.clearActiveEvent();
         
         setTimeout(() => {
             if (confirm('文气值耗尽了！是否重新开始游戏？')) {
@@ -1204,6 +1259,7 @@ class TextSurgeryGame {
                 this.levelProgress = 0;
                 this.totalAttempts = 0;
                 this.correctAttempts = 0;
+                this.eventScoreMultiplier = 1;
                 this.updateQiValue();
                 this.scoreValueEl.textContent = this.score;
                 this.updateLevelDisplay();
@@ -1234,49 +1290,105 @@ class TextSurgeryGame {
         }, 3000);
     }
 
-    async triggerComplication() {
+    async triggerEvent() {
         try {
             const response = await fetch('/api/complication/random');
             const data = await response.json();
             
             if (data.success) {
-                this.currentComplication = data.data;
-                this.showComplication();
+                this.activeEvent = data.data;
+                this.showEvent(this.activeEvent);
             }
         } catch (error) {
-            console.error('获取并发症失败:', error);
+            console.error('获取事件失败:', error);
         }
     }
 
-    showComplication() {
-        if (!this.currentComplication) return;
+    showEvent(event) {
+        if (!event) return;
         
-        this.audioManager.playEmergency();
-        this.vibrationManager.emergency();
+        this.audioManager.playBonus();
+        this.vibrationManager.bonus();
         
-        this.complicationTitleEl.textContent = this.currentComplication.title;
-        this.complicationDescriptionEl.textContent = this.currentComplication.description;
-        
-        if (this.currentComplication.type === 'timed_diagnosis' || this.currentComplication.type === 'emergency') {
-            this.timerDisplayEl.style.display = 'flex';
-            this.complicationOptionsEl.style.display = 'none';
-            this.startComplicationTimer();
-        } else if (this.currentComplication.type === 'side_effect') {
-            this.timerDisplayEl.style.display = 'none';
-            this.complicationOptionsEl.style.display = 'flex';
-            this.renderComplicationOptions();
+        if (event.type === 'timed_bonus') {
+            this.showTimedBonusEvent(event);
+        } else if (event.type === 'side_effect') {
+            this.showSideEffectEvent(event);
+        } else if (event.type === 'lucky') {
+            this.showLuckyEvent(event);
         }
-        
-        this.complicationModalEl.style.display = 'flex';
     }
 
-    startComplicationTimer() {
-        let timeLeft = this.currentComplication.time_limit;
-        this.timerValueEl.textContent = timeLeft;
+    showTimedBonusEvent(event) {
+        this.eventIconEl.textContent = '⏰';
+        this.eventTextEl.textContent = event.description;
+        this.eventTimerEl.style.display = 'flex';
+        this.eventCloseBtnEl.style.display = 'none';
         
-        this.complicationTimer = setInterval(() => {
+        this.eventScoreMultiplier = event.bonus_multiplier;
+        this.startEventTimer(event.time_limit);
+        
+        this.eventBannerEl.style.display = 'flex';
+        this.eventBannerEl.classList.add('banner-slide-in');
+        
+        setTimeout(() => {
+            this.eventBannerEl.classList.remove('banner-slide-in');
+        }, 500);
+    }
+
+    showSideEffectEvent(event) {
+        this.eventPopupIconEl.textContent = '⚠️';
+        this.eventPopupTitleEl.textContent = event.title;
+        this.eventPopupDescriptionEl.textContent = event.description;
+        
+        let html = '';
+        event.options.forEach((option, index) => {
+            html += `
+                <div class="event-popup-option" data-index="${index}">
+                    ${option.text}
+                </div>
+            `;
+        });
+        this.eventPopupOptionsEl.innerHTML = html;
+        
+        this.eventPopupOptionsEl.querySelectorAll('.event-popup-option').forEach(optionEl => {
+            optionEl.addEventListener('click', () => {
+                this.handleEventChoice(parseInt(optionEl.dataset.index), event);
+            });
+        });
+        
+        this.eventPopupEl.style.display = 'flex';
+    }
+
+    showLuckyEvent(event) {
+        this.eventIconEl.textContent = '🍀';
+        this.eventTextEl.textContent = event.description;
+        this.eventTimerEl.style.display = 'none';
+        this.eventCloseBtnEl.style.display = 'inline-block';
+        
+        if (event.bonus === 'free_hint') {
+            this.freeHintAvailable = true;
+        }
+        
+        this.eventBannerEl.style.display = 'flex';
+        this.eventBannerEl.classList.add('banner-slide-in');
+        
+        setTimeout(() => {
+            this.eventBannerEl.classList.remove('banner-slide-in');
+        }, 500);
+        
+        setTimeout(() => {
+            this.hideEventBanner();
+        }, 5000);
+    }
+
+    startEventTimer(timeLimit) {
+        let timeLeft = timeLimit;
+        this.eventTimerValueEl.textContent = timeLeft;
+        
+        this.eventTimer = setInterval(() => {
             timeLeft--;
-            this.timerValueEl.textContent = timeLeft;
+            this.eventTimerValueEl.textContent = timeLeft;
             
             if (timeLeft <= 3) {
                 this.audioManager.playClick();
@@ -1284,37 +1396,19 @@ class TextSurgeryGame {
             }
             
             if (timeLeft <= 0) {
-                clearInterval(this.complicationTimer);
-                this.handleComplicationTimeout();
+                clearInterval(this.eventTimer);
+                this.handleEventTimeout();
             }
         }, 1000);
     }
 
-    renderComplicationOptions() {
-        let html = '';
-        this.currentComplication.options.forEach((option, index) => {
-            html += `
-                <div class="complication-option" data-index="${index}">
-                    ${option.text}
-                </div>
-            `;
-        });
-        this.complicationOptionsEl.innerHTML = html;
-        
-        this.complicationOptionsEl.querySelectorAll('.complication-option').forEach(optionEl => {
-            optionEl.addEventListener('click', () => {
-                this.handleComplicationChoice(parseInt(optionEl.dataset.index));
-            });
-        });
-    }
-
-    async handleComplicationChoice(choiceIndex) {
+    async handleEventChoice(choiceIndex, event) {
         try {
             const response = await fetch('/api/complication/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    complication_id: this.currentComplication.id,
+                    complication_id: event.id,
                     choice: choiceIndex
                 })
             });
@@ -1337,27 +1431,33 @@ class TextSurgeryGame {
                 }
             }
         } catch (error) {
-            console.error('检查并发症答案失败:', error);
+            console.error('检查事件答案失败:', error);
         }
         
-        this.closeComplication();
+        this.hideEventPopup();
     }
 
-    handleComplicationTimeout() {
-        this.qiValue += this.currentComplication.penalty;
-        this.updateQiValue();
-        this.showFeedback(false, '时间到了！', `文气值 ${this.currentComplication.penalty}`);
-        this.audioManager.playError();
-        this.vibrationManager.error();
-        this.closeComplication();
+    handleEventTimeout() {
+        this.eventScoreMultiplier = 1;
+        this.hideEventBanner();
     }
 
-    closeComplication() {
-        if (this.complicationTimer) {
-            clearInterval(this.complicationTimer);
+    hideEventBanner() {
+        this.eventBannerEl.style.display = 'none';
+    }
+
+    hideEventPopup() {
+        this.eventPopupEl.style.display = 'none';
+    }
+
+    clearActiveEvent() {
+        if (this.eventTimer) {
+            clearInterval(this.eventTimer);
         }
-        this.complicationModalEl.style.display = 'none';
-        this.currentComplication = null;
+        this.activeEvent = null;
+        this.eventScoreMultiplier = 1;
+        this.hideEventBanner();
+        this.hideEventPopup();
     }
 
     showLevelComplete() {
@@ -1400,77 +1500,80 @@ class TextSurgeryGame {
         ctx.lineWidth = 8;
         ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
         
-        ctx.setLineDash([10, 5]);
-        ctx.strokeStyle = '#d4a574';
+        ctx.strokeStyle = '#c9a96e';
         ctx.lineWidth = 2;
-        ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
-        ctx.setLineDash([]);
+        ctx.strokeRect(35, 35, canvas.width - 70, canvas.height - 70);
         
-        ctx.font = 'bold 48px Microsoft YaHei';
-        ctx.fillStyle = '#8b4513';
+        ctx.fillStyle = '#8B4513';
+        ctx.font = 'bold 36px "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('🏅 行医资格证书', canvas.width / 2, 120);
+        ctx.fillText('行医资格证书', canvas.width / 2, 100);
         
-        ctx.font = '20px Microsoft YaHei';
-        ctx.fillStyle = '#a0522d';
-        ctx.fillText('CERTIFICATE OF MEDICAL PRACTICE', canvas.width / 2, 160);
+        ctx.fillStyle = '#5d4e37';
+        ctx.font = '18px "Microsoft YaHei", sans-serif';
+        ctx.fillText('CERTIFICATE OF MEDICAL PRACTICE', canvas.width / 2, 130);
         
-        ctx.font = '24px Microsoft YaHei';
-        ctx.fillStyle = '#5d4037';
-        ctx.fillText('兹证明', canvas.width / 2, 230);
+        ctx.fillStyle = '#d4a574';
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, 200, 50, 0, Math.PI * 2);
+        ctx.fill();
         
-        ctx.font = 'bold 36px Microsoft YaHei';
-        ctx.fillStyle = '#4a90d9';
-        ctx.fillText(this.certificateNameEl.textContent, canvas.width / 2, 290);
+        ctx.fillStyle = '#fff';
+        ctx.font = '40px sans-serif';
+        ctx.fillText('🏅', canvas.width / 2, 215);
         
-        ctx.font = '24px Microsoft YaHei';
-        ctx.fillStyle = '#5d4037';
-        ctx.fillText('已完成', canvas.width / 2, 340);
+        ctx.fillStyle = '#5d4e37';
+        ctx.font = '20px "Microsoft YaHei", sans-serif';
+        ctx.fillText('兹证明', canvas.width / 2, 290);
         
-        ctx.font = 'bold 32px Microsoft YaHei';
-        ctx.fillStyle = '#4caf50';
-        ctx.fillText(this.certificateLevelEl.textContent, canvas.width / 2, 390);
+        ctx.fillStyle = '#8B4513';
+        ctx.font = 'bold 48px "Microsoft YaHei", sans-serif';
+        ctx.fillText(this.certificateNameEl.textContent, canvas.width / 2, 360);
         
-        ctx.font = '20px Microsoft YaHei';
-        ctx.fillStyle = '#5d4037';
-        ctx.fillText('等级的全部诊疗任务', canvas.width / 2, 430);
+        ctx.fillStyle = '#5d4e37';
+        ctx.font = '20px "Microsoft YaHei", sans-serif';
+        ctx.fillText('已完成', canvas.width / 2, 410);
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.fillRect(80, 470, canvas.width - 160, 120);
+        ctx.fillStyle = '#8B4513';
+        ctx.font = 'bold 36px "Microsoft YaHei", sans-serif';
+        ctx.fillText(this.certificateLevelEl.textContent, canvas.width / 2, 465);
         
-        ctx.font = 'bold 28px Microsoft YaHei';
-        ctx.fillStyle = '#4a90d9';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.certificateScoreEl.textContent, 180, 520);
-        ctx.font = '16px Microsoft YaHei';
-        ctx.fillStyle = '#666';
-        ctx.fillText('治愈病例', 180, 550);
+        ctx.fillStyle = '#5d4e37';
+        ctx.font = '18px "Microsoft YaHei", sans-serif';
+        ctx.fillText('等级的全部诊疗任务', canvas.width / 2, 500);
         
-        ctx.font = 'bold 28px Microsoft YaHei';
-        ctx.fillStyle = '#ff9800';
-        ctx.fillText(this.certificateComboEl.textContent, 300, 520);
-        ctx.font = '16px Microsoft YaHei';
-        ctx.fillStyle = '#666';
-        ctx.fillText('最高连击', 300, 550);
+        const statsY = 560;
+        const statSpacing = 160;
         
-        ctx.font = 'bold 28px Microsoft YaHei';
-        ctx.fillStyle = '#4caf50';
-        ctx.fillText(this.certificateAccuracyEl.textContent, 420, 520);
-        ctx.font = '16px Microsoft YaHei';
-        ctx.fillStyle = '#666';
-        ctx.fillText('准确率', 420, 550);
+        ctx.fillStyle = '#8B4513';
+        ctx.font = 'bold 32px "Microsoft YaHei", sans-serif';
+        ctx.fillText(this.certificateScoreEl.textContent, canvas.width / 2 - statSpacing, statsY);
+        ctx.fillText(this.certificateComboEl.textContent, canvas.width / 2, statsY);
+        ctx.fillText(this.certificateAccuracyEl.textContent, canvas.width / 2 + statSpacing, statsY);
         
-        ctx.font = '18px Microsoft YaHei';
-        ctx.fillStyle = '#8b7355';
-        ctx.fillText(this.certificateDateEl.textContent, canvas.width / 2, 660);
+        ctx.fillStyle = '#5d4e37';
+        ctx.font = '14px "Microsoft YaHei", sans-serif';
+        ctx.fillText('治愈病例', canvas.width / 2 - statSpacing, statsY + 25);
+        ctx.fillText('最高连击', canvas.width / 2, statsY + 25);
+        ctx.fillText('准确率', canvas.width / 2 + statSpacing, statsY + 25);
         
-        ctx.font = 'italic 20px Microsoft YaHei';
-        ctx.fillStyle = '#8b4513';
-        ctx.fillText('✒️ 语言医学院', canvas.width / 2, 710);
+        ctx.fillStyle = '#5d4e37';
+        ctx.font = '16px "Microsoft YaHei", sans-serif';
+        ctx.fillText(this.certificateDateEl.textContent, canvas.width / 2, 680);
         
-        ctx.font = '14px Microsoft YaHei';
-        ctx.fillStyle = '#999';
-        ctx.fillText('文字手术模拟器 - 语言医生', canvas.width / 2, 760);
+        ctx.fillStyle = '#8B4513';
+        ctx.font = '24px "Microsoft YaHei", sans-serif';
+        ctx.fillText('✒️ 语言医学院', canvas.width / 2, 730);
+        
+        ctx.fillStyle = '#e74c3c';
+        ctx.globalAlpha = 0.7;
+        ctx.font = 'bold 16px "Microsoft YaHei", sans-serif';
+        ctx.save();
+        ctx.translate(canvas.width - 100, 750);
+        ctx.rotate(-0.3);
+        ctx.fillText('认证有效', 0, 0);
+        ctx.restore();
+        ctx.globalAlpha = 1;
         
         this.posterModalEl.style.display = 'flex';
     }
@@ -1482,14 +1585,14 @@ class TextSurgeryGame {
     downloadPoster() {
         const canvas = this.posterCanvasEl;
         const link = document.createElement('a');
-        link.download = `行医资格证_${this.currentLevel}_${Date.now()}.png`;
+        link.download = `行医资格证-${this.currentLevel}-${Date.now()}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
         
-        this.showFeedback(true, '海报已保存！', '快去朋友圈分享你的成就吧！');
+        this.showFeedback(true, '海报已保存！', '可以分享到朋友圈啦！');
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new TextSurgeryGame();
+    const game = new TextSurgeryGame();
 });

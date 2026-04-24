@@ -13,25 +13,25 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 active_sessions = {}
 
 level_system = {
-    "竹簡": {
-        "name": "竹簡",
-        "description": "初學者級別 - 基礎錯別字修復",
+    "竹简": {
+        "name": "竹简",
+        "description": "初学者级别 - 基础错别字修复",
         "difficulty": 1,
         "max_score": 10,
         "paper_style": "bamboo",
         "unlock_score": 0
     },
-    "帛書": {
-        "name": "帛書",
-        "description": "進階級別 - 複雜語句診斷",
+    "帛书": {
+        "name": "帛书",
+        "description": "进阶级别 - 复杂语句诊断",
         "difficulty": 2,
         "max_score": 20,
         "paper_style": "silk",
         "unlock_score": 50
     },
-    "宣紙": {
-        "name": "宣紙",
-        "description": "大師級別 - 古文修復挑戰",
+    "宣纸": {
+        "name": "宣纸",
+        "description": "大师级别 - 古文修复挑战",
         "difficulty": 3,
         "max_score": 30,
         "paper_style": "rice",
@@ -42,264 +42,263 @@ level_system = {
 complication_events = [
     {
         "id": "time_crisis",
-        "type": "timed_diagnosis",
-        "title": "⏰ 急診時間！",
-        "description": "病人情況危急，必須在10秒內做出診斷！",
-        "time_limit": 10,
-        "penalty": -20,
-        "bonus": 30
+        "type": "timed_bonus",
+        "title": "⏰ 限时挑战！",
+        "description": "接下来15秒内完成诊断可获得双倍积分！",
+        "time_limit": 15,
+        "bonus_multiplier": 2,
+        "penalty": 0
     },
     {
         "id": "side_effect_choice",
         "type": "side_effect",
-        "title": "⚠️ 併發症選擇！",
-        "description": "治療過程中出現併發症，請選擇正確的處理方式！",
+        "title": "⚠️ 出现并发症！",
+        "description": "病人出现异常反应，请选择处理方式：",
         "options": [
-            {"text": "使用強力藥劑", "correct": False, "explanation": "強力藥劑會對病人造成更大傷害"},
-            {"text": "溫和處理，觀察情況", "correct": True, "explanation": "溫和處理是正確的選擇"}
+            {"text": "保守治疗", "correct": True, "explanation": "正确！继续当前诊断任务"},
+            {"text": "激进手术", "correct": False, "explanation": "文气值-10，请继续诊断"}
         ],
-        "penalty": -15,
-        "bonus": 25
+        "penalty": -10,
+        "bonus": 5
     },
     {
-        "id": "emergency_consult",
-        "type": "emergency",
-        "title": "🚨 緊急會診！",
-        "description": "多位專家需要同時診斷，請快速做出決定！",
-        "time_limit": 8,
-        "penalty": -25,
-        "bonus": 40
+        "id": "lucky_event",
+        "type": "lucky",
+        "title": "🍀 幸运事件！",
+        "description": "获得了一个免费提示！现在可以免费使用听诊器一次。",
+        "bonus": "free_hint",
+        "time_limit": 0
     }
 ]
 
 exercise_data = {
-    "竹簡": [
+    "竹简": [
         {
             "id": 101,
-            "original_text": "我們在教室裡認真的學習。",
-            "error_type": "錯別字",
+            "original_text": "我们在教室里认真的学习。",
+            "error_type": "错别字",
             "difficulty": 1,
-            "level": "竹簡",
+            "level": "竹简",
             "errors": [
                 {
                     "position": 7,
                     "original_char": "的",
                     "correct_char": "地",
-                    "explanation": "'認真地學習'中的'地'用作副詞修飾動詞'學習'"
+                    "explanation": "'认真地学习'中的'地'用作副词修饰动词'学习'"
                 }
             ]
         },
         {
             "id": 102,
-            "original_text": "今天的天氣真晴郎。",
-            "error_type": "錯別字",
+            "original_text": "今天的天气真晴郎。",
+            "error_type": "错别字",
             "difficulty": 1,
-            "level": "竹簡",
+            "level": "竹简",
             "errors": [
                 {
                     "position": 7,
                     "original_char": "郎",
                     "correct_char": "朗",
-                    "explanation": "'晴朗'指天氣晴好，'朗'表示明亮"
+                    "explanation": "'晴朗'指天气晴好，'朗'表示明亮"
                 }
             ]
         },
         {
             "id": 103,
-            "original_text": "春天來了，百花齊方。",
-            "error_type": "錯別字",
+            "original_text": "春天来了，百花齐方。",
+            "error_type": "错别字",
             "difficulty": 1,
-            "level": "竹簡",
+            "level": "竹简",
             "errors": [
                 {
                     "position": 8,
                     "original_char": "方",
                     "correct_char": "放",
-                    "explanation": "'百花齊放'指各種花朵同時開放"
+                    "explanation": "'百花齐放'指各种花朵同时开放"
                 }
             ]
         },
         {
             "id": 104,
-            "original_text": "老師鼓厲我繼續努力。",
-            "error_type": "錯別字",
+            "original_text": "老师鼓厉我继续努力。",
+            "error_type": "错别字",
             "difficulty": 1,
-            "level": "竹簡",
+            "level": "竹简",
             "errors": [
                 {
                     "position": 4,
-                    "original_char": "厲",
-                    "correct_char": "勵",
-                    "explanation": "'鼓勵'指激勵、勉勵，用'勵'"
+                    "original_char": "厉",
+                    "correct_char": "励",
+                    "explanation": "'鼓励'指激励、勉励，用'励'"
                 }
             ]
         },
         {
             "id": 105,
-            "original_text": "我看見一隻可愛的小免子。",
-            "error_type": "錯別字",
+            "original_text": "我看见一只可爱的小免子。",
+            "error_type": "错别字",
             "difficulty": 1,
-            "level": "竹簡",
+            "level": "竹简",
             "errors": [
                 {
                     "position": 9,
                     "original_char": "免",
                     "correct_char": "兔",
-                    "explanation": "'兔子'的'兔'上面有一點"
+                    "explanation": "'兔子'的'兔'上面有一点"
                 }
             ]
         }
     ],
-    "帛書": [
+    "帛书": [
         {
             "id": 201,
-            "original_text": "我每天都要做很多的作業，真是太忙了。",
-            "error_type": "贅字",
+            "original_text": "我每天都要做很多的作业，真是太忙了。",
+            "error_type": "赘字",
             "difficulty": 2,
-            "level": "帛書",
+            "level": "帛书",
             "errors": [
                 {
                     "position": 9,
                     "original_char": "的",
                     "correct_char": "",
-                    "explanation": "'很多作業'已經完整，不需要多餘的'的'"
+                    "explanation": "'很多作业'已经完整，不需要多余的'的'"
                 }
             ]
         },
         {
             "id": 202,
-            "original_text": "小明的成績比小紅的成績好。",
-            "error_type": "贅字",
+            "original_text": "小明的成绩比小红的成绩好。",
+            "error_type": "赘字",
             "difficulty": 2,
-            "level": "帛書",
+            "level": "帛书",
             "errors": [
                 {
                     "position": 8,
-                    "original_char": "的成績",
+                    "original_char": "的成绩",
                     "correct_char": "",
-                    "explanation": "可以簡化為'小明的成績比小紅好'"
+                    "explanation": "可以简化为'小明的成绩比小红好'"
                 }
             ]
         },
         {
             "id": 203,
-            "original_text": "這是一個多麼美麗漂亮的花園啊！",
-            "error_type": "贅字",
+            "original_text": "这是一个多么美丽漂亮的花园啊！",
+            "error_type": "赘字",
             "difficulty": 2,
-            "level": "帛書",
+            "level": "帛书",
             "errors": [
                 {
                     "position": 8,
                     "original_char": "漂亮",
                     "correct_char": "",
-                    "explanation": "'美麗'和'漂亮'意思相近，可以去掉其中一個"
+                    "explanation": "'美丽'和'漂亮'意思相近，可以去掉其中一个"
                 }
             ]
         },
         {
             "id": 204,
-            "original_text": "他的為人處事，總是斤斤計較、小氣吝嗇。",
-            "error_type": "贅字",
+            "original_text": "他的为人处事，总是斤斤计较、小气吝啬。",
+            "error_type": "赘字",
             "difficulty": 2,
-            "level": "帛書",
+            "level": "帛书",
             "errors": [
                 {
                     "position": 12,
-                    "original_char": "小氣",
+                    "original_char": "小气",
                     "correct_char": "",
-                    "explanation": "'斤斤計較'已包含小氣之意，可刪除重複"
+                    "explanation": "'斤斤计较'已包含小气之意，可删除重复"
                 }
             ]
         },
         {
             "id": 205,
-            "original_text": "這件事的確確實實是我做錯了。",
-            "error_type": "贅字",
+            "original_text": "这件事的的确确是我做错了。",
+            "error_type": "赘字",
             "difficulty": 2,
-            "level": "帛書",
+            "level": "帛书",
             "errors": [
                 {
                     "position": 4,
-                    "original_char": "確確實實",
-                    "correct_char": "確實",
-                    "explanation": "'的確'和'確實'語義重複，保留一個即可"
+                    "original_char": "确确实实",
+                    "correct_char": "确实",
+                    "explanation": "'的确'和'确实'语义重复，保留一个即可"
                 }
             ]
         }
     ],
-    "宣紙": [
+    "宣纸": [
         {
             "id": 301,
-            "original_text": "關於這件事情，我們將要在明天開會進行討論。",
-            "error_type": "語病",
+            "original_text": "关于这件事情，我们将要在明天开会进行讨论。",
+            "error_type": "语病",
             "difficulty": 3,
-            "level": "宣紙",
+            "level": "宣纸",
             "errors": [
                 {
                     "position": 12,
-                    "original_char": "將要",
+                    "original_char": "将要",
                     "correct_char": "",
-                    "explanation": "'明天'已暗示未來，'將要'屬多餘"
+                    "explanation": "'明天'已暗示未来，'将要'属多余"
                 }
             ]
         },
         {
             "id": 302,
-            "original_text": "通過這次的學習，使我明白了許多道理。",
-            "error_type": "語病",
+            "original_text": "通过这次的学习，使我明白了许多道理。",
+            "error_type": "语病",
             "difficulty": 3,
-            "level": "宣紙",
+            "level": "宣纸",
             "errors": [
                 {
                     "position": 0,
-                    "original_char": "通過",
+                    "original_char": "通过",
                     "correct_char": "",
-                    "explanation": "'通過...使...'結構缺主語，應刪除'通過'或'使'"
+                    "explanation": "'通过...使...'结构缺主语，应删除'通过'或'使'"
                 }
             ]
         },
         {
             "id": 303,
-            "original_text": "他的寫作水平顯著提高了很多。",
-            "error_type": "語病",
+            "original_text": "他的写作水平显著提高了很多。",
+            "error_type": "语病",
             "difficulty": 3,
-            "level": "宣紙",
+            "level": "宣纸",
             "errors": [
                 {
                     "position": 10,
                     "original_char": "很多",
                     "correct_char": "",
-                    "explanation": "'顯著'已表示程度，'很多'屬多餘"
+                    "explanation": "'显著'已表示程度，'很多'属多余"
                 }
             ]
         },
         {
             "id": 304,
-            "original_text": "為了避免今後不再發生類似的錯誤，我們要認真總結教訓。",
-            "error_type": "語病",
+            "original_text": "为了避免今后不再发生类似的错误，我们要认真总结教训。",
+            "error_type": "语病",
             "difficulty": 3,
-            "level": "宣紙",
+            "level": "宣纸",
             "errors": [
                 {
                     "position": 6,
                     "original_char": "不",
                     "correct_char": "",
-                    "explanation": "'避免'與'不再'雙重否定導致語義相反，應刪除'不'"
+                    "explanation": "'避免'与'不再'双重否定导致语义相反，应删除'不'"
                 }
             ]
         },
         {
             "id": 305,
-            "original_text": "誰也不能否認這不是一部好電影。",
-            "error_type": "語病",
+            "original_text": "谁也不能否认这不是一部好电影。",
+            "error_type": "语病",
             "difficulty": 3,
-            "level": "宣紙",
+            "level": "宣纸",
             "errors": [
                 {
                     "position": 8,
                     "original_char": "不",
                     "correct_char": "",
-                    "explanation": "三重否定導致語義混亂，應改為'誰也不能否認這是一部好電影'"
+                    "explanation": "三重否定导致语义混乱，应改为'谁也不能否认这是一部好电影'"
                 }
             ]
         }
@@ -308,65 +307,65 @@ exercise_data = {
 
 doctor_characters = [
     {
-        "name": "啄木鳥醫生",
+        "name": "啄木鸟医生",
         "emoji": "🪶",
         "image": "🐦",
-        "description": "森林裡最厲害的語言醫生，專門吃掉錯別字"
+        "description": "森林里最厉害的语言医生，专门吃掉错别字"
     },
     {
-        "name": "小馬醫生",
+        "name": "小马医生",
         "emoji": "🐴",
         "image": "🐴",
-        "description": "年輕有為的語言治療師，充滿活力"
+        "description": "年轻有为的语言治疗师，充满活力"
     },
     {
-        "name": "貓頭鷹醫生",
+        "name": "猫头鹰医生",
         "emoji": "🦉",
         "image": "🦉",
-        "description": "智慧的語言學者，懂得很多語法知識"
+        "description": "智慧的语言学者，懂得很多语法知识"
     },
     {
-        "name": "熊貓醫生",
+        "name": "熊猫医生",
         "emoji": "🐼",
         "image": "🐼",
-        "description": "溫柔可愛的語言醫生，深受小朋友喜愛"
+        "description": "温柔可爱的语言医生，深受小朋友喜爱"
     }
 ]
 
 tools = [
     {
         "id": "tweezers",
-        "name": "鑷子",
+        "name": "镊子",
         "emoji": "🔧",
-        "description": "用於精準選取錯字",
+        "description": "用于精准选取错字",
         "action": "select"
     },
     {
         "id": "scalpel",
-        "name": "手術刀",
+        "name": "手术刀",
         "emoji": "🗡️",
-        "description": "用於切除贅字",
+        "description": "用于切除赘字",
         "action": "delete"
     },
     {
         "id": "suture_needle",
-        "name": "縫合針",
+        "name": "缝合针",
         "emoji": "🪡",
-        "description": "用於替換錯字",
+        "description": "用于替换错字",
         "action": "replace"
     },
     {
         "id": "bandage",
-        "name": "繃帶",
+        "name": "绷带",
         "emoji": "🩹",
-        "description": "用於確認修改",
+        "description": "用于确认修改",
         "action": "confirm"
     },
     {
         "id": "stethoscope",
-        "name": "聽診器",
+        "name": "听诊器",
         "emoji": "🩺",
-        "description": "用於獲取提示",
+        "description": "用于获取提示",
         "action": "hint"
     }
 ]
@@ -391,7 +390,7 @@ def get_level_detail(level_name):
         })
     return jsonify({
         'success': False,
-        'message': '等級不存在'
+        'message': '等级不存在'
     }), 404
 
 @app.route('/api/tools')
@@ -422,7 +421,7 @@ def get_exercise_by_level(level_name):
         })
     return jsonify({
         'success': False,
-        'message': '等級不存在'
+        'message': '等级不存在'
     }), 404
 
 @app.route('/api/exercise/<int:exercise_id>')
@@ -438,7 +437,7 @@ def get_exercise(exercise_id):
         })
     return jsonify({
         'success': False,
-        'message': '練習不存在'
+        'message': '练习不存在'
     }), 404
 
 @app.route('/api/exercise/check', methods=['POST'])
@@ -456,7 +455,7 @@ def check_answer():
     if not exercise:
         return jsonify({
             'success': False,
-            'message': '練習不存在'
+            'message': '练习不存在'
         }), 404
     
     error = next((err for err in exercise['errors'] if err['position'] == position), None)
@@ -464,7 +463,7 @@ def check_answer():
     if not error:
         return jsonify({
             'success': False,
-            'message': '該位置沒有錯誤'
+            'message': '该位置没有错误'
         }), 400
     
     correct_char = error['correct_char']
@@ -478,7 +477,7 @@ def check_answer():
                 'original_char': original_char,
                 'correct_char': correct_char,
                 'explanation': error['explanation'],
-                'message': '太棒了！你成功修復了這個語病！'
+                'message': '太棒了！你成功修复了这个语病！'
             }
         })
     else:
@@ -490,7 +489,7 @@ def check_answer():
                 'user_answer': user_answer,
                 'correct_char': correct_char,
                 'explanation': error['explanation'],
-                'message': '哎呀，這個答案不太對哦，再試試看？'
+                'message': '哎呀，这个答案不太对哦，再试试看？'
             }
         })
 
@@ -528,7 +527,7 @@ def check_complication_answer():
     if not complication:
         return jsonify({
             'success': False,
-            'message': '併發症不存在'
+            'message': '并发症不存在'
         }), 404
     
     if complication['type'] == 'side_effect':
@@ -546,7 +545,7 @@ def check_complication_answer():
     
     return jsonify({
         'success': False,
-        'message': '不支持的併發症類型'
+        'message': '不支持的并发症类型'
     }), 400
 
 @app.route('/api/session/create', methods=['POST'])
@@ -575,16 +574,16 @@ def get_session(session_id):
         })
     return jsonify({
         'success': False,
-        'message': '會議不存在'
+        'message': '会议不存在'
     }), 404
 
 @socketio.on('join_session')
 def handle_join_session(data):
     session_id = data.get('session_id')
-    player_name = data.get('player_name', '匿名醫生')
+    player_name = data.get('player_name', '匿名医生')
     
     if session_id not in active_sessions:
-        emit('error', {'message': '會議不存在'})
+        emit('error', {'message': '会议不存在'})
         return
     
     join_room(session_id)

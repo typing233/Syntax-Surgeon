@@ -103,11 +103,24 @@
         </div>
 
         <div class="game-screen" id="gameScreen" style="display: none;">
+            <div class="event-banner" id="eventBanner" style="display: none;">
+                <div class="event-banner-content">
+                    <span class="event-icon" id="eventIcon">⏰</span>
+                    <span class="event-text" id="eventText">限时挑战！接下来15秒内完成诊断可获得双倍积分！</span>
+                    <div class="event-timer" id="eventTimer" style="display: none;">
+                        <span class="timer-label">剩余</span>
+                        <span class="timer-value" id="eventTimerValue">15</span>
+                        <span class="timer-unit">秒</span>
+                    </div>
+                    <button class="event-close" id="eventClose" style="display: none;">×</button>
+                </div>
+            </div>
+
             <header class="game-header">
                 <div class="title-section">
                     <button class="back-btn" id="backFromGameBtn">← 返回</button>
                     <div class="level-info">
-                        <span class="current-level" id="currentLevel">竹簡</span>
+                        <span class="current-level" id="currentLevel">竹简</span>
                         <span class="level-progress" id="levelProgress">1/5</span>
                     </div>
                 </div>
@@ -220,24 +233,20 @@
             </div>
         </div>
 
-        <div class="complication-modal" id="complicationModal" style="display: none;">
-            <div class="complication-content">
-                <div class="complication-header" id="complicationHeader">
-                    <span class="complication-icon">⏰</span>
-                    <h3 id="complicationTitle">急诊时间！</h3>
+        <div class="event-popup" id="eventPopup" style="display: none;">
+            <div class="event-popup-content">
+                <div class="event-popup-header" id="eventPopupHeader">
+                    <span class="event-popup-icon" id="eventPopupIcon">⚠️</span>
+                    <h3 id="eventPopupTitle">出现并发症！</h3>
                 </div>
-                <div class="complication-body">
-                    <p class="complication-description" id="complicationDescription">
-                        病人情况危急，必须在10秒内做出诊断！
+                <div class="event-popup-body">
+                    <p class="event-popup-description" id="eventPopupDescription">
+                        病人出现异常反应，请选择处理方式：
                     </p>
-                    <div class="timer-display" id="timerDisplay" style="display: none;">
-                        <span class="timer-label">剩余时间</span>
-                        <span class="timer-value" id="timerValue">10</span>
-                        <span class="timer-unit">秒</span>
-                    </div>
-                    <div class="complication-options" id="complicationOptions" style="display: none;">
+                    <div class="event-popup-options" id="eventPopupOptions">
                     </div>
                 </div>
+                <button class="event-popup-close" id="eventPopupClose" style="display: none;">跳过</button>
             </div>
         </div>
 
@@ -258,7 +267,7 @@
                     <p class="certificate-text">兹证明</p>
                     <p class="certificate-name" id="certificateName">医生</p>
                     <p class="certificate-text">已完成</p>
-                    <p class="certificate-level" id="certificateLevel">竹簡</p>
+                    <p class="certificate-level" id="certificateLevel">竹简</p>
                     <p class="certificate-text">等级的全部诊疗任务</p>
                     <div class="certificate-stats">
                         <div class="stat-item">
