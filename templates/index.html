@@ -5,69 +5,196 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文字手术模拟器 - 语言医生</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
-    <div class="game-container">
-        <header class="game-header">
-            <div class="title-section">
+    <div class="game-container" id="gameContainer">
+        <div class="main-menu" id="mainMenu">
+            <div class="menu-header">
                 <h1 class="game-title">🏥 文字手术模拟器</h1>
                 <p class="game-subtitle">望闻问切，修复病句残篇</p>
             </div>
-            <div class="status-bar">
-                <div class="qi-value">
-                    <span class="qi-label">文气值</span>
-                    <span class="qi-amount" id="qiValue">100</span>
-                    <div class="qi-bar">
-                        <div class="qi-fill" id="qiBar" style="width: 100%"></div>
-                    </div>
+            <div class="menu-buttons">
+                <button class="menu-btn primary" id="startSoloBtn">
+                    <span class="btn-icon">🎮</span>
+                    <span class="btn-text">单人模式</span>
+                </button>
+                <button class="menu-btn secondary" id="startConsultBtn">
+                    <span class="btn-icon">👥</span>
+                    <span class="btn-text">实时会诊</span>
+                </button>
+                <button class="menu-btn tertiary" id="viewLevelsBtn">
+                    <span class="btn-icon">📚</span>
+                    <span class="btn-text">关卡体系</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="level-select" id="levelSelect" style="display: none;">
+            <div class="level-header">
+                <button class="back-btn" id="backFromLevelBtn">← 返回</button>
+                <h2>选择关卡</h2>
+            </div>
+            <div class="level-cards" id="levelCards">
+            </div>
+        </div>
+
+        <div class="consult-lobby" id="consultLobby" style="display: none;">
+            <div class="lobby-header">
+                <button class="back-btn" id="backFromLobbyBtn">← 返回</button>
+                <h2>实时会诊大厅</h2>
+            </div>
+            <div class="lobby-content">
+                <div class="create-session">
+                    <h3>创建会诊</h3>
+                    <input type="text" id="playerNameInput" placeholder="输入你的名字" class="input-field">
+                    <button class="action-btn" id="createSessionBtn">创建会诊房间</button>
                 </div>
-                <div class="score">
-                    <span class="score-label">治愈病例</span>
-                    <span class="score-amount" id="scoreValue">0</span>
+                <div class="join-session">
+                    <h3>加入会诊</h3>
+                    <input type="text" id="sessionIdInput" placeholder="输入房间号" class="input-field">
+                    <input type="text" id="joinNameInput" placeholder="输入你的名字" class="input-field">
+                    <button class="action-btn" id="joinSessionBtn">加入会诊</button>
                 </div>
             </div>
-        </header>
+        </div>
 
-        <main class="game-main">
-            <div class="medical-record-container">
-                <div class="record-header">
-                    <div class="record-title">
-                        <span class="record-icon">📜</span>
-                        <h2>残卷病历</h2>
-                        <span class="error-type" id="errorType">错别字</span>
+        <div class="consult-room" id="consultRoom" style="display: none;">
+            <div class="room-header">
+                <div class="room-info">
+                    <span class="room-id">房间号: <span id="currentRoomId"></span></span>
+                    <button class="copy-btn" id="copyRoomIdBtn">📋 复制</button>
+                </div>
+                <button class="leave-btn" id="leaveRoomBtn">离开房间</button>
+            </div>
+            <div class="room-content">
+                <div class="player-list" id="playerList">
+                    <h4>会诊医生</h4>
+                    <div class="players" id="playersContainer">
                     </div>
-                    <button class="next-btn" id="nextBtn" style="display: none;">
-                        下一个病例 →
-                    </button>
                 </div>
-                
-                <div class="record-content" id="recordContent">
-                    <p class="diagnosis-text" id="diagnosisText">
-                        正在加载病例...
-                    </p>
-                </div>
-                
-                <div class="record-footer">
-                    <div class="hint-text" id="hintText">
-                        💡 提示：点击你认为有错误的字词进行诊断
+                <div class="consult-game-area">
+                    <div class="medical-record-container consult-record">
+                        <div class="record-header">
+                            <div class="record-title">
+                                <span class="record-icon">📜</span>
+                                <h2>共同病历</h2>
+                                <span class="error-type" id="consultErrorType">等待中...</span>
+                            </div>
+                            <button class="start-btn" id="startConsultExerciseBtn" style="display: none;">开始会诊</button>
+                        </div>
+                        <div class="record-content" id="consultRecordContent">
+                            <p class="diagnosis-text" id="consultDiagnosisText">
+                                等待房主开始会诊...
+                            </p>
+                        </div>
+                    </div>
+                    <div class="consult-chat">
+                        <h4>会诊讨论</h4>
+                        <div class="chat-messages" id="chatMessages">
+                        </div>
+                        <div class="chat-input">
+                            <input type="text" id="chatInput" placeholder="输入消息...">
+                            <button id="sendChatBtn">发送</button>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="doctor-section">
-                <div class="doctor-card">
-                    <div class="doctor-avatar" id="doctorAvatar">
-                        🐦
+        <div class="game-screen" id="gameScreen" style="display: none;">
+            <header class="game-header">
+                <div class="title-section">
+                    <button class="back-btn" id="backFromGameBtn">← 返回</button>
+                    <div class="level-info">
+                        <span class="current-level" id="currentLevel">竹簡</span>
+                        <span class="level-progress" id="levelProgress">1/5</span>
                     </div>
-                    <div class="doctor-info">
-                        <h3 class="doctor-name" id="doctorName">啄木鸟医生</h3>
-                        <p class="doctor-says" id="doctorSays">
-                            让我们一起修复这些病句吧！
+                </div>
+                <div class="status-bar">
+                    <div class="combo-display" id="comboDisplay" style="display: none;">
+                        <span class="combo-label">连击</span>
+                        <span class="combo-count" id="comboCount">0</span>
+                        <span class="combo-multiplier" id="comboMultiplier">x1</span>
+                    </div>
+                    <div class="qi-value">
+                        <span class="qi-label">文气值</span>
+                        <span class="qi-amount" id="qiValue">100</span>
+                        <div class="qi-bar">
+                            <div class="qi-fill" id="qiBar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="score">
+                        <span class="score-label">治愈病例</span>
+                        <span class="score-amount" id="scoreValue">0</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="tools-bar" id="toolsBar">
+                <div class="tool-item active" data-tool="tweezers" title="镊子 - 选取">
+                    <span class="tool-icon">🔧</span>
+                    <span class="tool-name">镊子</span>
+                </div>
+                <div class="tool-item" data-tool="scalpel" title="手术刀 - 切除">
+                    <span class="tool-icon">🗡️</span>
+                    <span class="tool-name">手术刀</span>
+                </div>
+                <div class="tool-item" data-tool="suture_needle" title="缝合针 - 替换">
+                    <span class="tool-icon">🪡</span>
+                    <span class="tool-name">缝合针</span>
+                </div>
+                <div class="tool-item" data-tool="bandage" title="绷带 - 确认">
+                    <span class="tool-icon">🩹</span>
+                    <span class="tool-name">绷带</span>
+                </div>
+                <div class="tool-item" data-tool="stethoscope" title="听诊器 - 提示">
+                    <span class="tool-icon">🩺</span>
+                    <span class="tool-name">听诊器</span>
+                </div>
+            </div>
+
+            <main class="game-main">
+                <div class="medical-record-container" id="medicalRecordContainer">
+                    <div class="record-header">
+                        <div class="record-title">
+                            <span class="record-icon">📜</span>
+                            <h2>残卷病历</h2>
+                            <span class="error-type" id="errorType">错别字</span>
+                        </div>
+                        <button class="next-btn" id="nextBtn" style="display: none;">
+                            下一个病例 →
+                        </button>
+                    </div>
+                    
+                    <div class="record-content" id="recordContent">
+                        <p class="diagnosis-text" id="diagnosisText">
+                            正在加载病例...
                         </p>
                     </div>
+                    
+                    <div class="record-footer">
+                        <div class="hint-text" id="hintText">
+                            💡 提示：点击你认为有错误的字词进行诊断
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </main>
+
+                <div class="doctor-section">
+                    <div class="doctor-card">
+                        <div class="doctor-avatar" id="doctorAvatar">
+                            🐦
+                        </div>
+                        <div class="doctor-info">
+                            <h3 class="doctor-name" id="doctorName">啄木鸟医生</h3>
+                            <p class="doctor-says" id="doctorSays">
+                                让我们一起修复这些病句吧！
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
 
         <div class="modal-overlay" id="modalOverlay" style="display: none;">
             <div class="modal" id="modal">
@@ -93,10 +220,89 @@
             </div>
         </div>
 
+        <div class="complication-modal" id="complicationModal" style="display: none;">
+            <div class="complication-content">
+                <div class="complication-header" id="complicationHeader">
+                    <span class="complication-icon">⏰</span>
+                    <h3 id="complicationTitle">急诊时间！</h3>
+                </div>
+                <div class="complication-body">
+                    <p class="complication-description" id="complicationDescription">
+                        病人情况危急，必须在10秒内做出诊断！
+                    </p>
+                    <div class="timer-display" id="timerDisplay" style="display: none;">
+                        <span class="timer-label">剩余时间</span>
+                        <span class="timer-value" id="timerValue">10</span>
+                        <span class="timer-unit">秒</span>
+                    </div>
+                    <div class="complication-options" id="complicationOptions" style="display: none;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="feedback-popup" id="feedbackPopup" style="display: none;">
             <div class="feedback-icon" id="feedbackIcon">✅</div>
             <div class="feedback-message" id="feedbackMessage">太棒了！</div>
             <div class="feedback-explanation" id="feedbackExplanation"></div>
+        </div>
+
+        <div class="level-complete-modal" id="levelCompleteModal" style="display: none;">
+            <div class="certificate-container" id="certificateContainer">
+                <div class="certificate-header">
+                    <div class="certificate-seal">🏅</div>
+                    <h2 class="certificate-title">行医资格证书</h2>
+                    <div class="certificate-subtitle">CERTIFICATE OF MEDICAL PRACTICE</div>
+                </div>
+                <div class="certificate-body">
+                    <p class="certificate-text">兹证明</p>
+                    <p class="certificate-name" id="certificateName">医生</p>
+                    <p class="certificate-text">已完成</p>
+                    <p class="certificate-level" id="certificateLevel">竹簡</p>
+                    <p class="certificate-text">等级的全部诊疗任务</p>
+                    <div class="certificate-stats">
+                        <div class="stat-item">
+                            <span class="stat-value" id="certificateScore">0</span>
+                            <span class="stat-label">治愈病例</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="certificateCombo">0</span>
+                            <span class="stat-label">最高连击</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="certificateAccuracy">0%</span>
+                            <span class="stat-label">准确率</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="certificate-footer">
+                    <p class="certificate-date" id="certificateDate">2024年</p>
+                    <div class="certificate-sign">
+                        <span class="sign-icon">✒️</span>
+                        <span class="sign-text">语言医学院</span>
+                    </div>
+                </div>
+            </div>
+            <div class="certificate-actions">
+                <button class="cert-btn share-btn" id="shareCertificateBtn">
+                    📸 生成海报
+                </button>
+                <button class="cert-btn continue-btn" id="continueGameBtn">
+                    继续游戏
+                </button>
+            </div>
+        </div>
+
+        <div class="poster-modal" id="posterModal" style="display: none;">
+            <div class="poster-content">
+                <div class="poster-preview" id="posterPreview">
+                    <canvas id="posterCanvas"></canvas>
+                </div>
+                <div class="poster-actions">
+                    <button class="poster-btn" id="downloadPosterBtn">💾 保存海报</button>
+                    <button class="poster-btn secondary" id="closePosterBtn">关闭</button>
+                </div>
+            </div>
         </div>
     </div>
 
